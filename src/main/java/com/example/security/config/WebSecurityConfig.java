@@ -1,5 +1,6 @@
 package com.example.security.config;
 
+import com.example.security.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity //Habilita o módulo de segurança na aplicação
@@ -19,6 +21,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired // classe service que tem a lógica de autenticação.
     private AuthenticationService authService;
+
+    /* Necessita ser injetado nessa classe, para passar como parâmetro no Filter, ja que o filterToken foi
+       instanciado manualmente por nós. */
+    @Autowired
+    private TokenService tokenService;
+
+    @Autowired
+    private UserService userService;
 
     @Override
     @Bean // É preciso transformar em @Bean para que seja possivel usar o @Autowired no AuthenticationController;
@@ -81,9 +91,17 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
          *      OBS: Como foi removido a session, e adicionado o modo Stateless, teve que ser removido o login gerenciado
          *           pelo spring, em consequencia disso, o controllerLogin que era gerado por debaixo dos panos, tb foi
          *           removido automaticamente, com isso, há a necessidade de criar o AuthenticationController.
+         *
+         * .addFilterBefore(YourFilter, filter): Tem como função, fazer com que a API execute um filtro antes de excutar
+         *                                       o fluxo normal;
+         *      ps.: Os parametros são o Filtro que quer adicionar, e o filtro no qual ele será executado antes.
+         *
+         * AuthenticationTokenFilter: Classe que gerencia o filtro de Tokens.
+         *
          */
 
         http.authorizeRequests()
+                .antMatchers("/test").permitAll()
                 .antMatchers(HttpMethod.POST, "/user").permitAll()
                 .antMatchers(HttpMethod.GET, "/user/*").permitAll()
                 .antMatchers(HttpMethod.POST, "/auth").permitAll()
@@ -96,7 +114,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
                 .and()
                 .csrf().disable()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+
+                .and()
+                .addFilterBefore(new AuthenticationTokenFilter(tokenService, userService), UsernamePasswordAuthenticationFilter.class);
     }
 
     @Override //Configurações de Recursos estáticos (js, css, imagens, etc.)

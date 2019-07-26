@@ -65,7 +65,7 @@ public class AuthenticationController {
             // Criar TokenDto, passando o JWT e o Header de autenticação que deverá utilizar.
             TokenDto tokenDto = new TokenDto(token, "Bearer");
 
-            return ResponseEntity.ok(token);
+            return ResponseEntity.ok(tokenDto);
         } catch (AuthenticationException e) {
             return ResponseEntity.badRequest().build();
         }

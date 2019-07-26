@@ -1,6 +1,7 @@
 package com.example.security.config;
 
 import com.example.security.models.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,13 @@ public class TokenService {
      * authentication.getPrincipal(): Retorna o Usuário autenticado do sistema, ou seja, o usuário que está logado.
      *      obs: O método retorna um Object, com isso é necessário realizar o cast para o tipo User.
      *
+
+
+     * isValid(): Vai realizar a verificação se o token informado é valido;
+     *      .parser(): É basicamente onde é realizado o processo de descriptografia
+     *      .setSignKey(): É equivalente ao Secret da aplicação.
+     *      .parseClaimsJws(): É um método onde é passado o token, e ele retorna o objeto do tipo Jws<Claims>
+                    com os dados do objeto que estão dentro do token.
      */
 
     @Value("${security.jwt.expiration}")
@@ -45,5 +53,22 @@ public class TokenService {
                 .setExpiration(dateExpiration)
                 .signWith(SignatureAlgorithm.HS256, secret)
                 .compact();
+    }
+
+    public boolean isValid(String token) {
+        try {
+            Jwts.parser().setSigningKey(this.secret).parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
+
+    public Integer getIdUser(String token) {
+        // Pegar o corpo do usuário atraves da descriptografia do token.
+        Claims body = Jwts.parser().setSigningKey(this.secret).parseClaimsJws(token).getBody();
+
+        return Integer.parseInt(body.getSubject());
     }
 }
